@@ -151,7 +151,7 @@ public class screengroup
 			for (i = 0; i < this.IndexList.Count(); i++) //Put all the variables in usable format
 			{
 				this.BlockList.Add(blocklist[this.IndexList[i]]);
-				this.ScreenList.Add(new screen(this.BlockList[i]));
+				this.ScreenList.Add(new screen("",this.BlockList[i]));
 				this.ScreenList[i].X = this.PositionList[i].X;
 				this.ScreenList[i].Y = this.PositionList[i].Y;
 			}
@@ -202,13 +202,13 @@ public class screengroup
 		int i;
 		for (i = 0; i < this.BlockList.Count(); i++)
 		{
-			this.ScreenList.Add(new screen(this.BlockList[i]));
+			this.ScreenList.Add(new screen("",this.BlockList[i]));
 			this.ScreenList[i].Index = i;
 		}
 
 	}
 
-	public void CleanLists()    //Cleans all screens not connected to screen with index this.A
+	public void CleanLists()    //Removes all screens not connected to screen with index this.A from ScreenList
 	{
 
 		int i;
@@ -480,25 +480,56 @@ public class screen
 	public double YStart = 0;
 	public Vector3D Position; //Cöordinates
 	public int Index;   //The index in the list of IMyTextPanels
+	public string Name;	//Name of the IMyTextPanel block
 
 
-	public screen(IMyTextPanel panel, ScreenSaver Save)
+	public screen(string Name, ScreenSaver Save, IMyTextPanel panel = null)
 	{
 
+		this.Name = Name;
+        this.Panel = panel;
 
+		if (this.Panel == null) //If only a Name is given, find TextPanel with given Name
+		{
+			int i;
+			List<IMyTextPanel> BlockList = new List<IMyTextPanel>();
+            program.GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(BlockList);
+
+			for(i=0;i<BlockList.Count();i++) 
+			{
+
+				if(BlockList[i].CustomName == this.Name)
+				{
+					this.Panel = BlockList[i];
+					this.Index = i;
+					break
+				}
+
+				if (BlockList[i].GetPublicText() == this.Name) //If Name is written on text panel, set Name as CustomName
+				{
+                    this.Panel = BlockList[i];
+					this.Index = i;
+					this.Panel.CustomName = this.Name;
+					break
+
+				}
+
+			}
+
+		}
 
 		this.Save = Save;
-		this.Font = panel.FontSize;
-		this.Height = (int)(Math.Round(18 / panel.FontSize, 0));
-		this.Width = (int)(Math.Round(73 / panel.FontSize, 0));
-		this.Panel = panel;
-		this.Position = panel.GetPosition();
+		this.Font = this.Panel.FontSize;
+		this.Height = (int)(Math.Round(18 / this.Panel.FontSize, 0));
+		this.Width = (int)(Math.Round(73 / this.Panel.FontSize, 0));
+
+		this.Position = this.Panel.GetPosition();
 
 		this.FillScreen(" ");
 		this.XStart = 0.5 / (float)this.Width;
 		this.YStart = 1 - 0.5 / (float)this.Height;
 
-		panel.ShowPublicTextOnScreen();
+		this.Panel.ShowPublicTextOnScreen();
 	}
 
 
@@ -600,7 +631,6 @@ static Program program;
 
 void Main(string argument, UpdateType updateSource)
 {
-
 
 	program = this;
 
