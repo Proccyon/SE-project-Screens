@@ -1,4 +1,4 @@
-﻿using Sandbox.ModAPI.Ingame;
+using Sandbox.ModAPI.Ingame;
 
 public Program()
 {
@@ -62,87 +62,7 @@ public static Vector3D Interpolate(Vector3D Vector1, Vector3D Vector2, double Le
 //-----EndGeneralDefinitions-----//
 //-------------------------------//
 
-//--------------------------//
-//-----BeginPongPhysics-----//
-//--------------------------//
 
-public class PongPhysics
-{
-	public Vector2D BallPosition;
-	public Vector2D RightBatPosition;
-	public Vector2D LeftBatPosition;
-	public double RoomWidth;
-	public double RoomHeight;
-	public double BallRadius;
-	public double BatHeight;
-	public double XSpeed;
-	public double YSpeed;
-	public double StartSpeed;
-	public double MaxAngle;
-	public int LeftScore = 0;
-	public int RightScore = 0;
-
-	public PongPhysics(double BallRadius, double BatHeight, double MaxAngle, double StartSpeed)
-	{
-		this.BallRadius = BallRadius;
-		this.BatHeight = BatHeight;
-		this.StartSpeed = StartSpeed;
-		this.MaxAngle = 2 * Math.PI * (MaxAngle / 360);
-		this.SetBall();
-
-	}
-
-	public void SetBall()
-	{
-
-		this.BallPosition.X = this.RoomWidth / 2;
-		this.BallPosition.Y = this.RoomHeight / 2;
-		this.LeftBatPosition.Y = this.RoomHeight / 2;
-		this.RightBatPosition.Y = this.RoomHeight / 2;
-
-		//		double Angle = (this.MaxAngle / 9) * RandInt(); //Generate random angle to shoot ball
-		//		this.YSpeed = Math.Sin(Angle) * this.StartSpeed;
-		//		this.XSpeed = Math.Cos(Angle) * this.StartSpeed;
-
-	}
-
-	public void Run(double RoomWidth, double RoomHeight)
-	{
-		this.RoomWidth = RoomWidth;
-		this.RoomHeight = RoomHeight;
-
-		this.BallPosition.X += XSpeed / 1000;
-		this.BallPosition.Y += YSpeed / 1000;
-
-		if (this.BallPosition.Y + this.BallRadius >= this.RoomHeight)
-		{
-			this.YSpeed *= -1;
-			this.BallPosition.Y = this.RoomHeight - this.BallRadius;
-		}
-
-		if (this.BallPosition.Y - this.BallRadius <= 0)
-		{
-			this.YSpeed *= -1;
-			this.BallPosition.Y = this.BallRadius;
-		}
-
-		if (this.BallPosition.X + this.BallRadius <= 0)
-		{
-			this.LeftScore += 1;
-			this.SetBall();
-		}
-
-		if (this.BallPosition.X - this.BallRadius >= this.RoomWidth)
-		{
-			this.RightScore += 1;
-			this.SetBall();
-		}
-
-
-	}
-
-
-}
 
 //------------------------//
 //-----StartGroupSaver-----//
@@ -172,8 +92,6 @@ public class GroupSaver
 //-----------------------//
 //-----EndGroupSaver-----//
 //-----------------------//
-
-
 
 
 //------------------------//
@@ -529,8 +447,6 @@ public class ScreenSaver
 {
 
 	public string Text;
-	public int ImageNumber; //How much images are drawn
-	public bool IsDrawing = false;
 	public double YStart;   //Where to start drawing
 	public double XStart;   //idem
 
@@ -560,11 +476,11 @@ public class screen
 	public IMyTextPanel Panel;
 	public double X; //Position for screengroup
 	public double Y; //Position for Screengroup
-	public double XStart = 0;
+	public double XStart = 0; 
 	public double YStart = 0;
-	public Vector3D Position;
+	public Vector3D Position; //Cöordinates
 	public int Index;   //The index in the list of IMyTextPanels
-	public int ImageNumber; //How much images are drawn
+
 
 	public screen(IMyTextPanel panel, ScreenSaver Save)
 	{
@@ -578,18 +494,9 @@ public class screen
 		this.Panel = panel;
 		this.Position = panel.GetPosition();
 
-		if (this.Save.IsDrawing)
-		{
-			this.Text = this.Save.Text;
-			this.XStart = this.Save.XStart;
-			this.YStart = this.Save.Ystart;
-		}
-		else
-		{
-			this.FillScreen(" ");
-			this.XStart = 0.5 / (float)this.Width;
-            this.YStart = 1 - 0.5 / (float)this.Height;
-		}
+		this.FillScreen(" ");
+		this.XStart = 0.5 / (float)this.Width;
+		this.YStart = 1 - 0.5 / (float)this.Height;
 
 		panel.ShowPublicTextOnScreen();
 	}
@@ -678,9 +585,7 @@ public class screen
 public static int ActionCount = 24999; // SE only allows 25000 method calls per tick
 
 
-PongPhysics Pong = new PongPhysics(0.2, 1, 45, 30);
-
-Vector2D Zero = new VRageMath.Vector2D(0.0, 0.0);
+Vector2D Zero = new VRageMath.Vector2D(0.0, 0.0); //Test variable
 GroupSaver Save = new GroupSaver();
 static Program program;
 
@@ -699,20 +604,13 @@ void Main(string argument, UpdateType updateSource)
 
 	program = this;
 
-
-	List<IMyTextPanel> Iets = new List<IMyTextPanel>();
-	GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(Iets);
-
 	screengroup Group = new screengroup("ScreenA", Save);
 
-	//Pong.Run(Group.Width, Group.Height);
+
 	circle Circle = new circle(1, Zero);
 	Group.DrawCircle(Circle);
 
 
-	//screen LCD = new screen(Iets[6]);
-	//LCD.DrawCircle(MiddleCircle);
-	//LCD.Drawtext();
 
 
 }
