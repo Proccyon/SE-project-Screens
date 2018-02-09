@@ -77,12 +77,12 @@ public class GroupSaver
 	public double Width;
 	public List<int> IndexList;
 	public List<Vector2D> PositionList;
+	public string Name;
 
 
-	public GroupSaver()
+	public GroupSaver(string Name)
 	{
-
-
+		this.Name = Name;
 	}
 
 }
@@ -117,48 +117,50 @@ public class screengroup
 	public GroupSaver Save;
 
 
-	public screengroup(string Name, GroupSaver Save)
+	public screengroup(string Name)
 	{
 
 		int i;
-		this.Save = Save;
+        this.Name = Name;
+		program.GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(this.BlockList);
+		this.OldList = new List<IMyTextPanel>(this.BlockList);
 
-
-		if (this.Save.Set == false) //If Screens already found or not
+		for (i = 0; i <= GroupSaveList.Count(); i++)
 		{
 
+			if (i == GroupSaveList.Count())
+			{
+				GroupSaveList.Add(new GroupSaver(this.Name));
+				this.Save = GroupSaveList[i];
+				this.SetUp();
+				break;
 
-			program.GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(this.BlockList);
+			}
 
-			this.OldList = new List<IMyTextPanel>(this.Blocklist);
-			this.Name = Name;
-			this.SetScreenList(); //Creates list of screens for each IMyTextPanel in BlockList
+
+			if (GroupSaveList[i].Name == this.Name)
+			{
+				this.Save = GroupSaveList[i];
+                this.GetVariables();
+				break;
+			}
+		}
+	}
+
+	public void SetUp()
+	{
+		
+            this.SetScreenList(); //Creates list of screens for each IMyTextPanel in BlockList
 			this.FindA();   //Finds the index of the screen with name this.Name
-			this.CleanLists();  //Cleans ScreenList of all screens not connected to Screen with index A
-
+			this.CleanLists();  //Cleans ScreenList of all screens not connected to Screen with index 
 			this.SetBlockList();
-
 			this.FindBottomLeft(); //Find index of screen in most bottom left corner
 			this.FindSize(); //Finds the amount of screens in the width and height direction
 			this.MarkPosition();    //Marks the relative position of each screen (ex. (0,0) for bottom left corner)
 			this.SaveVariables();   //Saves all variables in the GroupSaver to use next tick
-		}
-		else
-		{
-
-			this.GetVariables(); //Get all variables saved in GroupSaver
-
-			for (i = 0; i < this.IndexList.Count(); i++) //Put all the variables in usable format
-			{
-				this.BlockList.Add(blocklist[this.IndexList[i]]);
-				this.ScreenList.Add(new screen("",this.BlockList[i]));
-				this.ScreenList[i].X = this.PositionList[i].X;
-				this.ScreenList[i].Y = this.PositionList[i].Y;
-			}
-
-		}
-
 	}
+
+
 
 	public void SaveVariables() //Saves most variables in the GroupSaver
 	{
@@ -174,12 +176,22 @@ public class screengroup
 	public void GetVariables()
 	{
 
+		int i;
 		this.Width = this.Save.Width;
 		this.Height = this.Save.Height;
 		this.A = this.Save.A;
 		this.B = this.Save.B;
 		this.IndexList = this.Save.IndexList;
 		this.PositionList = this.Save.PositionList;
+
+		for (i = 0; i < this.IndexList.Count(); i++) //Put all the variables in usable format
+			{
+                this.BlockList.Add(this.OldList[this.IndexList[i]]);
+				this.ScreenList.Add(new screen("", this.BlockList[i]));
+				this.ScreenList[i].X = this.PositionList[i].X;
+				this.ScreenList[i].Y = this.PositionList[i].Y;
+			}
+
 
 	}
 
@@ -449,6 +461,13 @@ public class ScreenSaver
 	public string Text;
 	public double YStart;   //Where to start drawing
 	public double XStart;   //idem
+	public long Id; //integer that is unique for each block
+
+	public ScreenSaver(long Id)
+	{
+		this.Id = Id;
+	}
+
 
 }
 
@@ -469,29 +488,31 @@ public class screen
 {
 
 	public ScreenSaver Save;
-	public double Font;
-	public int Height;
-	public int Width;
-	public string Text;
-	public IMyTextPanel Panel;
+	public long Id; //Integer that is unique for each block
+	public double Font; //FontSize
+	public int Height; //Depends on FontSize, amount of letters high
+	public int Width; //Depends on FontSize, amount of letters width
+	public string Text; //The text on the screen
+	public IMyTextPanel Panel; 
 	public double X; //Position for screengroup
 	public double Y; //Position for Screengroup
-	public double XStart = 0; 
-	public double YStart = 0;
+	public double XStart = 0; //Where to start drawing an image
+	public double YStart = 0; //idem but for y
 	public Vector3D Position; //Cöordinates
 	public int Index;   //The index in the list of IMyTextPanels
 	public string Name;	//Name of the IMyTextPanel block
 
 
-	public screen(string Name, ScreenSaver Save, IMyTextPanel panel = null)
+	public screen(string Name, IMyTextPanel panel = null)
 	{
 
+		int i;
 		this.Name = Name;
         this.Panel = panel;
 
 		if (this.Panel == null) //If only a Name is given, find TextPanel with given Name
 		{
-			int i;
+			
 			List<IMyTextPanel> BlockList = new List<IMyTextPanel>();
             program.GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(BlockList);
 
@@ -502,7 +523,7 @@ public class screen
 				{
 					this.Panel = BlockList[i];
 					this.Index = i;
-					break
+					break;
 				}
 
 				if (BlockList[i].GetPublicText() == this.Name) //If Name is written on text panel, set Name as CustomName
@@ -510,7 +531,7 @@ public class screen
                     this.Panel = BlockList[i];
 					this.Index = i;
 					this.Panel.CustomName = this.Name;
-					break
+					break;
 
 				}
 
@@ -518,18 +539,37 @@ public class screen
 
 		}
 
-		this.Save = Save;
-		this.Font = this.Panel.FontSize;
+        this.Font = this.Panel.FontSize;
 		this.Height = (int)(Math.Round(18 / this.Panel.FontSize, 0));
 		this.Width = (int)(Math.Round(73 / this.Panel.FontSize, 0));
-
 		this.Position = this.Panel.GetPosition();
+        this.Panel.ShowPublicTextOnScreen();
 
-		this.FillScreen(" ");
-		this.XStart = 0.5 / (float)this.Width;
-		this.YStart = 1 - 0.5 / (float)this.Height;
+		this.Id = this.Panel.GetId();
 
-		this.Panel.ShowPublicTextOnScreen();
+
+		for (i = 0; i <= ScreenSaveList.Count(); i++)
+		{
+
+			if (i == ScreenSaveList.Count())
+			{
+				ScreenSaveList.Add(new ScreenSaver(this.Id));
+				this.Save = ScreenSaveList[i];
+                this.FillScreen(" ");
+				this.XStart = 0.5 / (float)this.Width;
+				this.YStart = 1 - 0.5 / (float)this.Height;
+				break;
+			}
+
+			if (ScreenSaveList[i].Id == this.Id)
+			{
+				this.Save = ScreenSaveList[i];
+				this.YStart = ScreenSaveList[i].YStart;
+                this.XStart = ScreenSaveList[i].XStart;
+				break;
+
+			}
+		}
 	}
 
 
@@ -613,11 +653,13 @@ public class screen
 //-----BeginGlobalVariables-----//
 //------------------------------//
 
+public static List<GroupSaver> GroupSaveList = new List<GroupSaver>();
+public static List<ScreenSaver> ScreenSaveList = new List<ScreenSaver>();
+
 public static int ActionCount = 24999; // SE only allows 25000 method calls per tick
 
 
 Vector2D Zero = new VRageMath.Vector2D(0.0, 0.0); //Test variable
-GroupSaver Save = new GroupSaver();
 static Program program;
 
 
@@ -633,14 +675,7 @@ void Main(string argument, UpdateType updateSource)
 {
 
 	program = this;
-
-	screengroup Group = new screengroup("ScreenA", Save);
-
-
-	circle Circle = new circle(1, Zero);
-	Group.DrawCircle(Circle);
-
-
+	screen Plane = new screen("Succes");
 
 
 }
