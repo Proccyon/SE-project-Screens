@@ -78,6 +78,7 @@ public class GroupSaver
 	public List<int> IndexList;
 	public List<Vector2D> PositionList;
 	public string Name;
+	public double ScreenGap;
 
 
 	public GroupSaver(string Name)
@@ -102,43 +103,44 @@ public class GroupSaver
 //-----BeginScreenGroup-----//
 //--------------------------//
 
-public class screengroup
+public class screengroup //Object that represents a group of screens next to each other
 {
-	public List<IMyTextPanel> BlockList = new List<IMyTextPanel>();
-	public List<IMyTextPanel> OldList = new List<IMyTextPanel>();
-	public List<screen> ScreenList = new List<screen>();
+	public List<IMyTextPanel> BlockList = new List<IMyTextPanel>(); //List of IMyTextPanels that gets filtered along the way
+	public List<IMyTextPanel> OldList = new List<IMyTextPanel>(); //List of used IMyTextPanels that doensn't get updated
+	public List<screen> ScreenList = new List<screen>(); //List of screens using the screen object
 	public List<int> IndexList = new List<int>(); //List of indexes of all screens in screengroup
 	public List<Vector2D> PositionList = new List<Vector2D>(); //List of relative Positions of all screens 
-	public double Width;
-	public double Height;
-	public int A;
+	public double Width; //Width of the group in amount of screens
+	public double Height; //Height of the group in amount of screens
+	public double ScreenGap = 2.5; //Distance between two screens on large grid
+	public int A; //Index of the screen with known name
 	public int B;
 	public string Name;
-	public GroupSaver Save;
+	public GroupSaver Save; //Screengroup is used locally, so it saves data in between runs in this variable which is stored later in a global list
 
 
 	public screengroup(string Name)
 	{
 
 		int i;
-        this.Name = Name;
+        this.Name = Name; //Name of a certain screen	
 		program.GridTerminalSystem.GetBlocksOfType<IMyTextPanel>(this.BlockList);
 		this.OldList = new List<IMyTextPanel>(this.BlockList);
 
 		for (i = 0; i <= GroupSaveList.Count(); i++)
 		{
 
-			if (i == GroupSaveList.Count())
+			if (i == GroupSaveList.Count()) // If there is no screengroup with this name, store data in the global list GroupSaveList
 			{
 				GroupSaveList.Add(new GroupSaver(this.Name));
 				this.Save = GroupSaveList[i];
-				this.SetUp();
+				this.SetUp(); //Performs calculations to start drawing on the screengroup
 				break;
 
 			}
 
 
-			if (GroupSaveList[i].Name == this.Name)
+			if (GroupSaveList[i].Name == this.Name) //If there is a Screengroup with this name already saved in GroupSaveList, receive data
 			{
 				this.Save = GroupSaveList[i];
                 this.GetVariables();
@@ -147,7 +149,7 @@ public class screengroup
 		}
 	}
 
-	public void SetUp()
+	public void SetUp() //Finds positions for each screen so drawing can begin
 	{
 		
             this.SetScreenList(); //Creates list of screens for each IMyTextPanel in BlockList
@@ -170,18 +172,21 @@ public class screengroup
 		this.Save.B = this.B;
 		this.Save.IndexList = this.IndexList;
 		this.Save.PositionList = this.PositionList;
+        this.Save.ScreenGap = ScreenGap;
 		this.Save.Set = true;
+
 	}
 
-	public void GetVariables()
+	public void GetVariables() // Unpacks data from save variable that gets retrieved from global list GroupSaveList
 	{
 
 		int i;
 		this.Width = this.Save.Width;
 		this.Height = this.Save.Height;
+		this.ScreenGap = this.Save.ScreenGap;
 		this.A = this.Save.A;
 		this.B = this.Save.B;
-		this.IndexList = this.Save.IndexList;
+		this.IndexList = this.Save.IndexList; 
 		this.PositionList = this.Save.PositionList;
 
 		for (i = 0; i < this.IndexList.Count(); i++) //Put all the variables in usable format
@@ -195,7 +200,7 @@ public class screengroup
 
 	}
 
-	public void SetBlockList()
+	public void SetBlockList() //Fills BlockList with blocks with indexes from IndexList
 	{
 		int i;
 		List<IMyTextPanel> NewList = new List<IMyTextPanel>();
@@ -215,7 +220,7 @@ public class screengroup
 		for (i = 0; i < this.BlockList.Count(); i++)
 		{
 			this.ScreenList.Add(new screen("",this.BlockList[i]));
-			this.ScreenList[i].Index = i;
+			this.ScreenList[i].Index  = i;
 		}
 
 	}
@@ -240,14 +245,14 @@ public class screengroup
 			for (i = 0; i < ScreenList.Count(); i++)
 			{
 
-				if (VRageMath.Vector3D.Distance(ToDoList[0].Position, ScreenList[i].Position) <= 2.7) //Use standart method!
+				if (VRageMath.Vector3D.Distance(ToDoList[0].Position, ScreenList[i].Position) <= this.ScreenGap + 0.1) 
 				{
 					ToDoList.Add(ScreenList[i]);
 					FoundList.Add(ScreenList[i]);
 					this.IndexList.Add(ScreenList[i].Index);
 					ScreenList.RemoveAt(i);
 					i -= 1;
-				}
+				} 
 
 			}
 			ToDoList.RemoveAt(0);
@@ -281,6 +286,7 @@ public class screengroup
 	{
 
 		int i;
+		bool FoundName = false;
 		for (i = 0; i < this.BlockList.Count(); i++)
 		{
 
@@ -288,16 +294,31 @@ public class screengroup
 			{
 				this.A = i;
 				this.BlockList[i].CustomName = this.Name; //Set the Name of the screen to this.Name
+				FoundName = true;
 				break;
 			}
 
 			if (this.BlockList[i].CustomName.Contains(this.Name))
 			{
 				this.A = i;
+				FoundName = true;
 				break;
 			}
 
+		} 
+
+		if (FoundName)
+		{
+			if (this.BlockList[A].CubeGrid.ToString().Contains("Small")) //Check if screen is on a small grid
+			{
+				this.ScreenGap = 1.5; //Is used later to connect the screengroup
+			}
 		}
+		else 
+		{
+			program.Echo("The name " + this.Name + " was not found while creating a screengroup. Make sure the name of the screen is the same as the one entered here.");		
+		}
+
 	}
 
 	public void FindSize()  //Finds the amount of screens in the Height and width direction
@@ -318,7 +339,7 @@ public class screengroup
 			xDone = true;
 			for (i = 0; i < this.ScreenList.Count(); i++)
 			{
-				if (CheckClose(Block + 2.5 * Right * x, this.ScreenList[i].Position, 0.2)) //Can be Optimised
+				if (CheckClose(Block + this.ScreenGap * Right * x, this.ScreenList[i].Position, 0.2)) //Can be Optimised
 				{
 					xDone = false;
 					x += 1;
@@ -333,7 +354,7 @@ public class screengroup
 			yDone = true;
 			for (i = 0; i < this.ScreenList.Count(); i++)
 			{
-				if (CheckClose(Block + 2.5 * Up * y, this.ScreenList[i].Position, 0.2))
+				if (CheckClose(Block + this.ScreenGap * Up * y, this.ScreenList[i].Position, 0.2))
 				{
 					yDone = false;
 					y += 1;
@@ -362,7 +383,7 @@ public class screengroup
 		{
 			for (y = 0; y < this.Height; y++)
 			{
-				Position = x * Right * 2.5 + y * Up * 2.5 + this.ScreenList[this.B].Position;
+				Position = x * Right * this.ScreenGap + y * Up * this.ScreenGap + this.ScreenList[this.B].Position;
 
 				for (i = 0; i < this.ScreenList.Count(); i++)
 				{
@@ -392,20 +413,20 @@ public class screengroup
 
 	}
 
-	public void DrawCircle(circle Circle)   //Draws a circle on the screenGroup
+	public void DrawShape(Shape shape)   //Draws a circle on the screenGroup
 	{
 
 		int i;
-		double X = Circle.Centre.X; //The normal position of the circle
-		double Y = Circle.Centre.Y;
+		double X = shape.Centre.X; //The normal position of the circle
+		double Y = shape.Centre.Y;
 
 
 		for (i = 0; i < this.ScreenList.Count(); i++)
 		{
 
-			Circle.Centre.X = X - this.ScreenList[i].X; //Corrected position based on place in Group
-			Circle.Centre.Y = Y - this.ScreenList[i].Y;
-			ScreenList[i].DrawCircle(Circle);
+			shape.Centre.X = X - this.ScreenList[i].X; //Corrected position based on place in Group
+			shape.Centre.Y = Y - this.ScreenList[i].Y;
+			ScreenList[i].DrawShape(shape);
 
 
 		}
@@ -418,25 +439,43 @@ public class screengroup
 //------------------------//
 
 //---------------------//
-//-----BeginCircle-----//
+//-----BeginShapes-----//
 //---------------------//
 
-public class circle
+
+
+public class Shape
 {
-
 	public Vector2D Centre;
-	public double R;
 	public string Symbol;
+	public double R;
 
-	public circle(double radius, Vector2D centre, string symbol = "I")
+	public Shape(Vector2D Centre, string Symbol = "I")
 	{
-		this.R = radius;
-		this.Centre = centre;
-		this.Symbol = symbol;
+		this.Centre = Centre;
+		this.Symbol = Symbol;
 	}
 
+	virtual public bool InShape(double X, double Y)
+	{
+		return false;
+	}
 
-	public bool WithinCircle(double X, double Y)
+}
+
+
+public class Circle : Shape
+{
+
+	public Circle(Vector2D Centre, double R, string Symbol = "I") : base(Centre, Symbol) 
+	{
+		this.Centre = Centre;
+		this.R = R;
+		this.Symbol = Symbol;
+
+	}
+
+	override public bool InShape(double X, double Y)
 	{
 
 		Vector2D XY = new VRageMath.Vector2D(X, Y);
@@ -446,8 +485,10 @@ public class circle
 
 }
 
+
+
 //-------------------//
-//-----EndCircle-----//
+//-----EndShapes-----//
 //-------------------//
 
 //--------------------------//
@@ -460,7 +501,7 @@ public class ScreenSaver
 
 	public string Text;
 	public double YStart;   //Where to start drawing
-	public double XStart;   //idem
+	public double XStart;   //idem 
 	public long Id; //integer that is unique for each block
 
 	public ScreenSaver(long Id)
@@ -481,13 +522,13 @@ public class ScreenSaver
 
 
 //---------------------//
-//-----BeginScreen-----//
+//-----BeginScreen-----// 
 //---------------------//
 
 public class screen
 {
 
-	public ScreenSaver Save;
+	public ScreenSaver Save; //Stores data in here
 	public long Id; //Integer that is unique for each block
 	public double Font; //FontSize
 	public int Height; //Depends on FontSize, amount of letters high
@@ -508,7 +549,8 @@ public class screen
 
 		int i;
 		this.Name = Name;
-        this.Panel = panel;
+        this.Panel = panel; //IMyTextpanel object
+        
 
 		if (this.Panel == null) //If only a Name is given, find TextPanel with given Name
 		{
@@ -540,28 +582,29 @@ public class screen
 		}
 
         this.Font = this.Panel.FontSize;
-		this.Height = (int)(Math.Round(18 / this.Panel.FontSize, 0));
-		this.Width = (int)(Math.Round(73 / this.Panel.FontSize, 0));
-		this.Position = this.Panel.GetPosition();
+		this.Height = (int)(Math.Round(18 / this.Panel.FontSize, 0)); //Calculates height in letters
+		this.Width = (int)(Math.Round(73 / this.Panel.FontSize, 0)); // Calculates Width in letters
+		this.Position = this.Panel.GetPosition(); // saves coordinates
+        this.FillScreen(" "); //Fills the screen with spaces
         this.Panel.ShowPublicTextOnScreen();
 
-		this.Id = this.Panel.GetId();
+		this.Id = this.Panel.GetId(); //Used to find the screen again later
 
 
-		for (i = 0; i <= ScreenSaveList.Count(); i++)
+
+		for (i = 0; i <= ScreenSaveList.Count(); i++) 
 		{
 
-			if (i == ScreenSaveList.Count())
+			if (i == ScreenSaveList.Count()) //If the screen isn't in the global list ScreenSaveList yet
 			{
-				ScreenSaveList.Add(new ScreenSaver(this.Id));
-				this.Save = ScreenSaveList[i];
-                this.FillScreen(" ");
-				this.XStart = 0.5 / (float)this.Width;
+				ScreenSaveList.Add(new ScreenSaver(this.Id)); //Add this screen to ScreenSaveList
+				this.Save = ScreenSaveList[i];                
+				this.XStart = 0.5 / (float)this.Width;  //Algorithm starts walking through the screen from the top left
 				this.YStart = 1 - 0.5 / (float)this.Height;
 				break;
 			}
 
-			if (ScreenSaveList[i].Id == this.Id)
+			if (ScreenSaveList[i].Id == this.Id) //If id's match, get data from the global list ScreenSaveList
 			{
 				this.Save = ScreenSaveList[i];
 				this.YStart = ScreenSaveList[i].YStart;
@@ -573,13 +616,13 @@ public class screen
 	}
 
 
-	public void Drawtext()
+	public void Drawtext() // Puts text in this.Text variable on screen
 	{
 		this.Panel.WritePublicText(this.Text, false);
 	}
 
 
-	public void FillScreen(string symbol)
+	public void FillScreen(string symbol) //Fills screen with given symbol
 	{
 		int y;
 		this.Text = "";
@@ -590,11 +633,16 @@ public class screen
 	}
 
 
-	public void DrawCircle(circle Circle)
+	public void DrawShape(Shape shape) // puts a circle in the this.Text variable with given parameters
 	{
 
-		//Optimisation
-		if (Circle.Centre.X - Circle.R <= 1 && Circle.Centre.X + Circle.R >= 0 && Circle.Centre.Y - Circle.R <= 1 && Circle.Centre.Y + Circle.R >= 0)
+		//Ignore if circle is outside of screen
+
+        this.XStart = 0.5 / (float)this.Width;  //Algorithm starts walking through the screen from the top left
+		this.YStart = 1 - 0.5 / (float)this.Height;
+
+
+		if (shape.Centre.X - shape.R <= 1 && shape.Centre.X + shape.R >= 0 && shape.Centre.Y - shape.R <= 1 && shape.Centre.Y + shape.R >= 0)
 		{
 			string NewText = "";
 			int i = 0;
@@ -610,15 +658,15 @@ public class screen
 				{
 
 					//Optimisation
-					if ((y > Circle.Centre.Y + Circle.R || y < Circle.Centre.Y - Circle.R) || (x > Circle.Centre.X + Circle.R || x < Circle.Centre.X - Circle.R))
+					if ((y > shape.Centre.Y + shape.R || y < shape.Centre.Y - shape.R) || (x > shape.Centre.X + shape.R || x < shape.Centre.X - shape.R))
 					{
 						NewText += this.Text[i];
 					}
 					else
 					{
-						if (Circle.WithinCircle(x, y))
+						if (shape.InShape(x, y))
 						{
-							NewText += Circle.Symbol;
+							NewText += shape.Symbol;
 						}
 						else
 						{
@@ -653,8 +701,8 @@ public class screen
 //-----BeginGlobalVariables-----//
 //------------------------------//
 
-public static List<GroupSaver> GroupSaveList = new List<GroupSaver>();
-public static List<ScreenSaver> ScreenSaveList = new List<ScreenSaver>();
+public static List<GroupSaver> GroupSaveList = new List<GroupSaver>(); //Global variable that saves GroupSaver variables
+public static List<ScreenSaver> ScreenSaveList = new List<ScreenSaver>(); // Global variable that saves ScreenSaver variables
 
 public static int ActionCount = 24999; // SE only allows 25000 method calls per tick
 
@@ -675,8 +723,12 @@ void Main(string argument, UpdateType updateSource)
 {
 
 	program = this;
-	screen Plane = new screen("Succes");
+	var Group = new screengroup("oof");
+	Group.DrawShape(new Circle(Zero,2));
 
+    Echo("ScreenGap: "+Group.ScreenGap.ToString());
+	Echo("Size: "+Group.Width.ToString() + "x"+Group.Height.ToString());
+	Echo("Count: "+Group.ScreenList.Count.ToString());
 
 }
 
