@@ -188,6 +188,7 @@ public class screengroup //Object that represents a group of screens next to eac
 		this.B = this.Save.B;
 		this.IndexList = this.Save.IndexList; 
 		this.PositionList = this.Save.PositionList;
+		this.BlockList.Clear();
 
 		for (i = 0; i < this.IndexList.Count(); i++) //Put all the variables in usable format
 			{
@@ -430,6 +431,8 @@ public class screengroup //Object that represents a group of screens next to eac
 
 
 		}
+		shape.Centre.X = X;
+		shape.Centre.Y = Y;
 	}
 }
 
