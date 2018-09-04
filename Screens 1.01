@@ -428,6 +428,7 @@ public class screengroup //Object that represents a group of screens next to eac
 			shape.Centre.X = X - this.ScreenList[i].X; //Corrected position based on place in Group
 			shape.Centre.Y = Y - this.ScreenList[i].Y;
 			ScreenList[i].DrawShape(shape);
+			ScreenList[i].Show();
 
 
 		}
@@ -544,7 +545,9 @@ public class screen
 	public double YStart = 0; //idem but for y
 	public Vector3D Position; //Cöordinates
 	public int Index;   //The index in the list of IMyTextPanels
+	public List<Shape> ShapeList = new List<Shape>();
 	public string Name;	//Name of the IMyTextPanel block
+	public string Symbol = "I";
 
 
 	public screen(string Name, IMyTextPanel panel = null)
@@ -612,6 +615,7 @@ public class screen
 				this.Save = ScreenSaveList[i];
 				this.YStart = ScreenSaveList[i].YStart;
                 this.XStart = ScreenSaveList[i].XStart;
+
 				break;
 
 			}
@@ -619,9 +623,13 @@ public class screen
 	}
 
 
-	public void Drawtext() // Puts text in this.Text variable on screen
+	public void DrawShape(Shape shape) // Puts text in this.Text variable on screen
 	{
-		this.Panel.WritePublicText(this.Text, false);
+		if (CanDraw)
+		{
+			this.ShapeList.Add(shape);
+		}
+
 	}
 
 
@@ -635,8 +643,30 @@ public class screen
 		}
 	}
 
+	public bool OnScreen() //Checks if the shapes in ShapeList are located on the screen, removes from shapelist if not
+	{
+		int i;
+		bool IsOnScreen = false;
+		Shape shape;
 
-	public void DrawShape(Shape shape) // puts a circle in the this.Text variable with given parameters
+		for (i = 0; i < this.ShapeList.Count; i++)
+		{
+			shape = this.ShapeList[i];
+			if (shape.Centre.X - shape.R <= 1 && shape.Centre.X + shape.R >= 0 && shape.Centre.Y - shape.R <= 1 && shape.Centre.Y + shape.R >= 0)
+			{
+				IsOnScreen = true;
+			}
+			else
+			{
+				this.ShapeList.RemoveAt(i);
+			}
+
+		}
+		return IsOnScreen;
+
+	}
+
+	public void Show() // puts a circle in the this.Text variable with given parameters
 	{
 
 		//Ignore if circle is outside of screen
@@ -644,11 +674,11 @@ public class screen
         this.XStart = 0.5 / (float)this.Width;  //Algorithm starts walking through the screen from the top left
 		this.YStart = 1 - 0.5 / (float)this.Height;
 
-
-		if (shape.Centre.X - shape.R <= 1 && shape.Centre.X + shape.R >= 0 && shape.Centre.Y - shape.R <= 1 && shape.Centre.Y + shape.R >= 0)
+		if (this.OnScreen())
 		{
 			string NewText = "";
 			int i = 0;
+			int k;
 			double LetterWidth = 1 / (float)this.Width; //Width of a letter
 			double LetterHeight = 1 / (float)this.Height; //Height of a letter
 			double x;
@@ -660,22 +690,20 @@ public class screen
 				for (x = this.XStart; x < 1; x += LetterWidth)
 				{
 
-					//Optimisation
-					if ((y > shape.Centre.Y + shape.R || y < shape.Centre.Y - shape.R) || (x > shape.Centre.X + shape.R || x < shape.Centre.X - shape.R))
+					for (k = 0; k < ShapeList.Count; k++)
 					{
-						NewText += this.Text[i];
-					}
-					else
-					{
-						if (shape.InShape(x, y))
+						if (ShapeList[k].InShape(x, y))
 						{
-							NewText += shape.Symbol;
+							NewText += this.Symbol;
+							break;
 						}
-						else
+						else if(k == ShapeList.Count-1) //If last Shape in ShapeList is reached
 						{
 							NewText += this.Text[i];
 						}
+
 					}
+				
 
 					i += 1;
 
@@ -685,12 +713,14 @@ public class screen
 			}
 
 			this.Text = NewText;
-			this.Drawtext();
+            this.Panel.WritePublicText(this.Text, false);
+
 		}
 		else
 		{
 			this.Text = "";
-			this.Drawtext();
+            this.Panel.WritePublicText(this.Text, false);
+
 		}
 	}
 
@@ -704,11 +734,12 @@ public class screen
 //-----BeginGlobalVariables-----//
 //------------------------------//
 
+
 public static List<GroupSaver> GroupSaveList = new List<GroupSaver>(); //Global variable that saves GroupSaver variables
 public static List<ScreenSaver> ScreenSaveList = new List<ScreenSaver>(); // Global variable that saves ScreenSaver variables
 
 public static int ActionCount = 24999; // SE only allows 25000 method calls per tick
-
+public static bool CanDraw = true;
 
 Vector2D Zero = new VRageMath.Vector2D(0.0, 0.0); //Test variable
 static Program program;
